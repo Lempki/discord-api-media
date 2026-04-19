@@ -8,9 +8,13 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from . import cache
 from .auth import require_auth
 from .config import Settings, get_settings
-from .extractor import fetch_info, search
-from .models import HealthResponse, MediaInfo, SearchRequest, SearchResponse, SearchResult
+from .extractor import fetch_info, fetch_playlist, search
+from .models import HealthResponse, MediaInfo, PlaylistResponse, PlaylistTrack, SearchRequest, SearchResponse, SearchResult
 from .sources import spotify
+
+
+def _is_youtube_playlist(url: str) -> bool:
+    return ("youtube.com" in url or "youtu.be" in url) and "list=" in url
 
 
 def _configure_logging(level: str) -> None:
@@ -85,3 +89,38 @@ async def media_search(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     return SearchResponse(results=[SearchResult(**e) for e in entries])
+
+
+@app.get("/media/playlist", response_model=PlaylistResponse, dependencies=[Depends(require_auth)])
+async def media_playlist(
+    settings: Annotated[Settings, Depends(get_settings)],
+    url: str = Query(...),
+) -> PlaylistResponse:
+    """Expand a playlist or album URL into an ordered list of tracks.
+
+    Accepts YouTube playlist URLs and Spotify album/playlist URLs.
+    Stream URLs are intentionally omitted; call ``/media/info`` per track at
+    play time so that expired URLs are never served from a stale queue.
+    """
+    try:
+        if spotify.is_spotify_url(url):
+            if not spotify.is_spotify_collection(url):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Use /media/info for Spotify track URLs.",
+                )
+            tracks = await spotify.get_collection(url, settings)
+        elif _is_youtube_playlist(url):
+            entries = await fetch_playlist(url, settings)
+            tracks = [PlaylistTrack(**e) for e in entries]
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="URL does not point to a supported playlist or album.",
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return PlaylistResponse(tracks=tracks)

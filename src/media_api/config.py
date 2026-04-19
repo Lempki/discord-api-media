@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     stream_url_cache_ttl: int = 300
     ydl_format: str = "bestaudio/best"
     max_search_results: int = 10
+    spotify_client_id: str | None = None
+    spotify_client_secret: str | None = None
 
 
 @lru_cache

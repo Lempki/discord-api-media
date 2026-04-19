@@ -78,6 +78,33 @@ async def fetch_info(url: str, settings: Settings) -> dict:
     return parsed
 
 
+def _entry_to_playlist_track(entry: dict) -> dict:
+    webpage_url = entry.get("webpage_url") or entry.get("url") or ""
+    if not webpage_url and entry.get("id"):
+        webpage_url = f"https://www.youtube.com/watch?v={entry['id']}"
+    return {
+        "title": entry.get("title", ""),
+        "webpage_url": webpage_url,
+        "duration_seconds": entry.get("duration"),
+        "duration_formatted": _format_duration(entry.get("duration")),
+        "thumbnail_url": entry.get("thumbnail"),
+    }
+
+
+async def fetch_playlist(url: str, settings: Settings) -> list[dict]:
+    opts = {**_make_ydl_opts(settings, flat=True), "noplaylist": False}
+    raw = await asyncio.to_thread(_extract_blocking, url, opts)
+    entries = raw.get("entries")
+    if not entries:
+        track = _entry_to_playlist_track(raw)
+        return [track] if track["webpage_url"] else []
+    return [
+        t
+        for e in entries
+        if (t := _entry_to_playlist_track(e))["webpage_url"]
+    ]
+
+
 async def search(query: str, source: str, max_results: int, settings: Settings) -> list[dict]:
     opts = _make_ydl_opts(settings, flat=True)
     entries = await asyncio.to_thread(_search_blocking, query, source, max_results, opts)

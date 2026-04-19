@@ -34,6 +34,18 @@ class SearchResponse(BaseModel):
     results: list[SearchResult]
 
 
+class PlaylistTrack(BaseModel):
+    title: str
+    webpage_url: str
+    duration_seconds: int | None = None
+    duration_formatted: str | None = None
+    thumbnail_url: str | None = None
+
+
+class PlaylistResponse(BaseModel):
+    tracks: list[PlaylistTrack]
+
+
 class HealthResponse(BaseModel):
     status: str
     service: str
