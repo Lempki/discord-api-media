@@ -1,12 +1,13 @@
 # discord-api-media
 
-This is a REST API that centralizes media metadata resolution for Discord bots. It wraps [yt-dlp](https://github.com/yt-dlp/yt-dlp) to provide track information, stream URLs, and search results for YouTube and SoundCloud over HTTP. Bots call this API instead of bundling yt-dlp themselves, keeping their dependencies minimal and allowing media support to be updated in a single place. This project is based on the [discord-api-template](https://github.com/Lempki/discord-api-template) repository, which provides the core architecture.
+This is a REST API that centralizes media metadata resolution for Discord bots. It wraps [yt-dlp](https://github.com/yt-dlp/yt-dlp) to provide track information, stream URLs, and search results for YouTube, SoundCloud, and Spotify over HTTP. Bots call this API instead of bundling yt-dlp themselves, keeping their dependencies minimal and allowing media support to be updated in a single place. This project is based on the [discord-api-template](https://github.com/Lempki/discord-api-template) repository, which provides the core architecture.
 
 ## Endpoints
 
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/media/info` | Resolve a URL or search query to full track metadata including a playable stream URL. |
+| `GET` | `/media/playlist` | Expand a YouTube playlist or Spotify album/playlist into an ordered list of tracks. |
 | `POST` | `/media/search` | Search for tracks and return a list of results. Results do not include stream URLs; call `/media/info` after the user selects a result. |
 | `GET` | `/health` | Returns the service name and version. Used for uptime monitoring. |
 
@@ -18,12 +19,33 @@ Accepts either a `url` parameter or a `query` + `source` pair. Providing both is
 
 ```
 GET /media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ
+GET /media/info?url=https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh
 GET /media/info?query=rick+astley&source=youtube
 ```
+
+Supported URL types: YouTube video, SoundCloud track, Spotify track. Spotify URLs are resolved to a matching YouTube video using the Spotify track name and artist. Requires `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for accurate Spotify matching; falls back to an ID-based search if credentials are absent.
 
 Response fields include `title`, `duration_seconds`, `duration_formatted`, `uploader`, `thumbnail_url`, `webpage_url`, `stream_url`, `stream_url_expires_at`, and `is_live`.
 
 Stream URLs from YouTube expire after a short time. The API caches them for five minutes. Metadata is cached for one hour.
+
+### GET /media/playlist
+
+Accepts a `url` parameter. Supported URL types:
+
+* YouTube playlist URLs (containing `list=`)
+* Spotify album URLs (`spotify.com/album/…`)
+* Spotify playlist URLs (`spotify.com/playlist/…`)
+
+```
+GET /media/playlist?url=https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_Pm8_VleD68f9s14-
+GET /media/playlist?url=https://open.spotify.com/album/6s84ul2oDhTLAhNJbBvzxs
+GET /media/playlist?url=https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+```
+
+Returns a `tracks` array. Each item contains `title`, `webpage_url`, `duration_seconds`, `duration_formatted`, and `thumbnail_url`. Stream URLs are intentionally omitted; call `/media/info?url=<webpage_url>` per track at play time to avoid serving expired URLs from a stale queue.
+
+For Spotify collections, each track is resolved to a YouTube `webpage_url` by searching YouTube for the track name and artist. Up to five searches run in parallel.
 
 ### POST /media/search
 
@@ -35,7 +57,7 @@ Stream URLs from YouTube expire after a short time. The API caches them for five
 }
 ```
 
-Supported sources are `youtube` and `soundcloud`. Spotify URLs passed to `/media/info` are resolved by converting them to a YouTube search.
+Supported sources are `youtube` and `soundcloud`.
 
 ## Prerequisites
 
@@ -80,6 +102,8 @@ All configuration is read from environment variables or from a `.env` file in th
 | `STREAM_URL_CACHE_TTL` | No | `300` | How long to cache stream URLs in seconds. YouTube URLs expire, so keep this value short. |
 | `YDL_FORMAT` | No | `bestaudio/best` | The yt-dlp format selector used when extracting stream URLs. |
 | `MAX_SEARCH_RESULTS` | No | `10` | Upper limit on results returned by `/media/search`. |
+| `SPOTIFY_CLIENT_ID` | No | — | Spotify application Client ID. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard). Required for accurate Spotify track, album, and playlist resolution. |
+| `SPOTIFY_CLIENT_SECRET` | No | — | Spotify application Client Secret. Required alongside `SPOTIFY_CLIENT_ID`. |
 
 ## Project structure
 
@@ -92,7 +116,11 @@ discord-api-media/
 │   ├── models.py       # Pydantic request and response models.
 │   ├── extractor.py    # yt-dlp wrapper with asyncio.to_thread and TTL caching.
 │   ├── cache.py        # Metadata and stream URL TTL caches.
-│   └── sources/        # Per-source helpers for YouTube, SoundCloud, and Spotify.
+│   └── sources/
+│       ├── youtube.py      # YouTube helper.
+│       ├── soundcloud.py   # SoundCloud helper.
+│       └── spotify.py      # Spotify resolver — tracks via Spotify Web API + YouTube search;
+│                           # albums and playlists via paginated Spotify API + parallel YT search.
 ├── tests/
 ├── Dockerfile
 ├── docker-compose.yml
