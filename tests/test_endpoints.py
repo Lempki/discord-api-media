@@ -23,7 +23,7 @@ def test_health():
 
 def test_info_requires_auth():
     r = client.get("/media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 def test_info_missing_params():
@@ -38,12 +38,12 @@ def test_info_conflicting_params():
 
 def test_search_requires_auth():
     r = client.post("/media/search", json={"query": "test"})
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 def test_playlist_requires_auth():
     r = client.get("/media/playlist?url=https://www.youtube.com/playlist?list=PL123")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 def test_playlist_missing_url():
