@@ -15,7 +15,11 @@ All endpoints except `/health` require a bearer token in the `Authorization` hea
 
 ### GET /media/info
 
-Accepts either a `url` parameter or a `query` + `source` pair. Providing both is an error.
+Accepts either a `url` parameter or a `query` + `source` pair. Providing both is an error. Supported URL types:
+
+* YouTube video URLs.
+* SoundCloud track URLs.
+* Spotify track URLs (`spotify.com/track/…`).
 
 ```
 GET /media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ
@@ -23,7 +27,7 @@ GET /media/info?url=https://open.spotify.com/track/4PTG3Z6ehGkBFwjybzWkR8?si=dcb
 GET /media/info?query=rick+astley&source=youtube
 ```
 
-Supported URL types: YouTube video, SoundCloud track, Spotify track. Spotify URLs are resolved to a matching YouTube video using the Spotify track name and artist. Requires `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for accurate Spotify matching; falls back to an ID-based search if credentials are absent.
+Spotify URLs are resolved to a matching YouTube video using the Spotify track name and artist. Requires `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for accurate Spotify matching; falls back to an ID-based search if credentials are absent.
 
 Response fields include `title`, `duration_seconds`, `duration_formatted`, `uploader`, `thumbnail_url`, `webpage_url`, `stream_url`, `stream_url_expires_at`, and `is_live`.
 
@@ -33,9 +37,9 @@ Stream URLs from YouTube expire after a short time. The API caches them for five
 
 Accepts a `url` parameter. Supported URL types:
 
-* YouTube playlist URLs (containing `list=`)
-* Spotify album URLs (`spotify.com/album/…`)
-* Spotify playlist URLs (`spotify.com/playlist/…`)
+* YouTube playlist URLs (containing `list=`).
+* Spotify album URLs (`spotify.com/album/…`).
+* Spotify playlist URLs (`spotify.com/playlist/…`).
 
 ```
 GET /media/playlist?url=https://www.youtube.com/playlist?list=PL2MI040U_GXobmpXtTwBF7oHBGT5BETSD
