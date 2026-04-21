@@ -19,7 +19,7 @@ Accepts either a `url` parameter or a `query` + `source` pair. Providing both is
 
 ```
 GET /media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ
-GET /media/info?url=https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh
+GET /media/info?url=https://open.spotify.com/track/4PTG3Z6ehGkBFwjybzWkR8?si=dcb2cb604ade42a8
 GET /media/info?query=rick+astley&source=youtube
 ```
 
@@ -38,9 +38,9 @@ Accepts a `url` parameter. Supported URL types:
 * Spotify playlist URLs (`spotify.com/playlist/…`)
 
 ```
-GET /media/playlist?url=https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_Pm8_VleD68f9s14-
-GET /media/playlist?url=https://open.spotify.com/album/6s84ul2oDhTLAhNJbBvzxs
-GET /media/playlist?url=https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+GET /media/playlist?url=https://www.youtube.com/playlist?list=PL2MI040U_GXobmpXtTwBF7oHBGT5BETSD
+GET /media/playlist?url=https://open.spotify.com/album/6eUW0wxWtzkFdaEFsTJto6?si=ZDLdDue4SNWAjCUsIKsbKw
+GET /media/playlist?url=https://open.spotify.com/playlist/19RcUUR4b9oxhcREqD8Xoq?si=75Lt4s1fSQS4OhpDCS3Oag
 ```
 
 Returns a `tracks` array. Each item contains `title`, `webpage_url`, `duration_seconds`, `duration_formatted`, and `thumbnail_url`. Stream URLs are intentionally omitted; call `/media/info?url=<webpage_url>` per track at play time to avoid serving expired URLs from a stale queue.
@@ -61,7 +61,7 @@ Supported sources are `youtube` and `soundcloud`.
 
 ## Prerequisites
 
-* [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
+* [Docker](https://docs.docker.com/get-started/get-docker/) and Docker Compose.
 
 Running without Docker requires Python 3.12 or newer, and FFmpeg available in the system PATH.
 
@@ -119,8 +119,7 @@ discord-api-media/
 │   └── sources/
 │       ├── youtube.py      # YouTube helper.
 │       ├── soundcloud.py   # SoundCloud helper.
-│       └── spotify.py      # Spotify resolver — tracks via Spotify Web API + YouTube search;
-│                           # albums and playlists via paginated Spotify API + parallel YT search.
+│       └── spotify.py      # Spotify resolver.
 ├── tests/
 ├── Dockerfile
 ├── docker-compose.yml
