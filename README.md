@@ -110,7 +110,7 @@ Alternatively, you can run the API as a Docker container.
    docker-compose up --build
    ```
 
-The API listens on port `8001` by default.
+The container runs on port `8000` internally. Docker Compose maps it to port `8001` on the host.
 
 ## Configuration
 
