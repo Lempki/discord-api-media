@@ -9,12 +9,15 @@ from media_api.main import app  # noqa: E402
 
 client = TestClient(app)
 AUTH = {"Authorization": "Bearer test-secret"}
+WRONG = {"Authorization": "Bearer wrong"}
 
 
 def test_health():
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+    assert r.json()["service"] == "discord-api-media"
+    assert "version" in r.json()
 
 
 def test_info_requires_auth():
@@ -61,3 +64,30 @@ def test_playlist_rejects_plain_youtube_url():
         headers=AUTH,
     )
     assert r.status_code == 400
+
+
+def test_info_wrong_auth():
+    r = client.get(
+        "/media/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        headers=WRONG,
+    )
+    assert r.status_code == 401
+
+
+def test_search_wrong_auth():
+    r = client.post("/media/search", json={"query": "test"}, headers=WRONG)
+    assert r.status_code == 401
+
+
+def test_playlist_wrong_auth():
+    r = client.get(
+        "/media/playlist?url=https://www.youtube.com/playlist?list=PL123",
+        headers=WRONG,
+    )
+    assert r.status_code == 401
+
+
+def test_search_missing_body():
+    # POST with no body → 422.
+    r = client.post("/media/search", headers=AUTH)
+    assert r.status_code == 422
